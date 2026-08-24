@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Logan's 30th 🎉</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -16,205 +17,321 @@
       text-align: center;
     }
 
-    .container {
-      max-width: 700px;
-      margin: auto;
-      padding: 35px 20px;
-    }
-
     h1 {
-      font-size: 42px;
-      margin-bottom: 10px;
+      font-size: 52px;
+      margin: 50px 20px 10px;
     }
 
-    .subtitle {
-      font-size: 20px;
-      margin-bottom: 30px;
+    h2 {
+      font-size: 32px;
+      margin-top: 50px;
+    }
+
+    p {
+      font-size: 25px;
     }
 
     .card {
       background: white;
-      padding: 30px;
-      border-radius: 25px;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 40px 25px;
+      border-radius: 30px;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.08);
     }
 
     input[type="file"] {
-      margin: 20px 0;
-      width: 100%;
+      font-size: 18px;
+      margin: 20px;
+      max-width: 90%;
     }
 
     button {
       background: #222;
       color: white;
       border: none;
-      padding: 14px 25px;
+      padding: 16px 28px;
       border-radius: 12px;
-      font-size: 17px;
+      font-size: 20px;
       cursor: pointer;
     }
 
     button:disabled {
       opacity: 0.5;
+      cursor: not-allowed;
     }
 
     #status {
-      margin: 20px 0;
+      margin-top: 25px;
+      font-size: 20px;
       font-weight: bold;
     }
 
     .gallery {
+      max-width: 1000px;
+      margin: 20px auto 60px;
+      padding: 20px;
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-      margin-top: 30px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
     }
 
     .gallery img {
       width: 100%;
-      height: 220px;
+      height: 240px;
       object-fit: cover;
-      border-radius: 15px;
+      border-radius: 18px;
+      background: #eee;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="container">
+  <h1>🎉 Logan's 30th 🎉</h1>
 
-    <h1>🎉 Logan's 30th 🎉</h1>
+  <p>Share your photos from the night! 📸</p>
 
-    <div class="subtitle">
-      Share your photos from the night! 📸
-    </div>
+  <div class="card">
 
-    <div class="card">
+    <h2>📷 Add your photos</h2>
 
-      <h2>📷 Add your photos</h2>
+    <input
+      type="file"
+      id="photoInput"
+      accept="image/*"
+      multiple
+    >
 
-      <input
-        type="file"
-        id="photos"
-        accept="image/*"
-        multiple
-      >
+    <br>
 
-      <br>
+    <button id="uploadButton">
+      Upload Photos
+    </button>
 
-      <button id="uploadButton">
-        Upload Photos
-      </button>
-
-      <div id="status"></div>
-
-    </div>
-
-    <h2>📸 Photos from the night</h2>
-
-    <div id="gallery" class="gallery"></div>
+    <div id="status"></div>
 
   </div>
 
-<script>
+  <h2>📸 Photos from the night</h2>
 
-const SUPABASE_URL = "https://gtrruvxetsdvcsibknrk.supabase.co";
+  <div id="gallery" class="gallery"></div>
 
-const SUPABASE_KEY = "sb_publishable_8rDiAAZSF8go9F6f7NtRXA_NHbqiF3W";
 
-const supabaseClient = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+  <script>
 
-const uploadButton = document.getElementById("uploadButton");
-const photoInput = document.getElementById("photos");
-const status = document.getElementById("status");
-const gallery = document.getElementById("gallery");
+    /* =====================================================
+       SUPABASE SETTINGS
+       ===================================================== */
 
-uploadButton.addEventListener("click", async () => {
+    const SUPABASE_URL =
+      "https://gtruvxetsdvcsibknrk.supabase.co";
 
-  const files = photoInput.files;
+    const SUPABASE_KEY =
+      "sb_publishable_8rDiAAZSF8go9F6f7NtRXA_NHbqiF3W";
 
-  if (!files.length) {
-    status.textContent = "Please choose some photos first.";
-    return;
-  }
 
-  uploadButton.disabled = true;
-  status.textContent = "Uploading photos... 📸";
+    /* =====================================================
+       DO NOT CHANGE ANYTHING BELOW THIS LINE
+       ===================================================== */
 
-  let uploaded = 0;
+    const BUCKET_NAME = "Events-photos";
 
-  for (const file of files) {
+    const supabaseClient =
+      window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+      );
 
-    const fileName =
-      Date.now() + "-" +
-      Math.random().toString(36).substring(2) +
-      "-" +
-      file.name;
 
-    const { error } = await supabaseClient
-      .storage
-      .from("event-photos")
-      .upload(fileName, file);
+    const photoInput =
+      document.getElementById("photoInput");
 
-    if (error) {
-      console.error(error);
+    const uploadButton =
+      document.getElementById("uploadButton");
+
+    const status =
+      document.getElementById("status");
+
+    const gallery =
+      document.getElementById("gallery");
+
+
+    /* =====================================================
+       UPLOAD PHOTOS
+       ===================================================== */
+
+    uploadButton.addEventListener("click", async () => {
+
+      const files = Array.from(photoInput.files);
+
+      if (files.length === 0) {
+        status.textContent = "Please choose a photo first.";
+        return;
+      }
+
+      uploadButton.disabled = true;
+
+      let uploaded = 0;
+
       status.textContent =
-        "Something went wrong uploading a photo.";
+        `Uploading ${files.length} photo${files.length === 1 ? "" : "s"}...`;
+
+      for (const file of files) {
+
+        try {
+
+          const extension =
+            file.name.split(".").pop();
+
+          const safeName =
+            file.name
+              .replace(/[^a-zA-Z0-9.-]/g, "-");
+
+          const fileName =
+            `${Date.now()}-${Math.random()
+              .toString(36)
+              .substring(2, 8)}-${safeName}`;
+
+
+          const { error } =
+            await supabaseClient
+              .storage
+              .from(BUCKET_NAME)
+              .upload(fileName, file, {
+                cacheControl: "3600",
+                upsert: false
+              });
+
+
+          if (error) {
+            console.error("UPLOAD ERROR:", error);
+
+            status.textContent =
+              `Upload failed: ${error.message}`;
+
+            uploadButton.disabled = false;
+
+            return;
+          }
+
+
+          uploaded++;
+
+          status.textContent =
+            `🎉 ${uploaded} of ${files.length} uploaded!`;
+
+        }
+
+        catch (error) {
+
+          console.error(error);
+
+          status.textContent =
+            `Upload failed: ${error.message}`;
+
+          uploadButton.disabled = false;
+
+          return;
+        }
+      }
+
+
+      photoInput.value = "";
+
+      status.textContent =
+        `🎉 ${uploaded} photo${uploaded === 1 ? "" : "s"} uploaded successfully!`;
+
       uploadButton.disabled = false;
-      return;
+
+      loadPhotos();
+
+    });
+
+
+    /* =====================================================
+       LOAD PHOTOS
+       ===================================================== */
+
+    async function loadPhotos() {
+
+      gallery.innerHTML = "Loading photos...";
+
+
+      const { data, error } =
+        await supabaseClient
+          .storage
+          .from(BUCKET_NAME)
+          .list("", {
+            limit: 200,
+            sortBy: {
+              column: "created_at",
+              order: "desc"
+            }
+          });
+
+
+      if (error) {
+
+        console.error("GALLERY ERROR:", error);
+
+        gallery.innerHTML =
+          `<p>Couldn't load the photos.</p>`;
+
+        return;
+      }
+
+
+      gallery.innerHTML = "";
+
+
+      if (!data || data.length === 0) {
+
+        gallery.innerHTML =
+          "<p>No photos uploaded yet 📸</p>";
+
+        return;
+      }
+
+
+      data.forEach(file => {
+
+        const {
+          data: publicData
+        } =
+          supabaseClient
+            .storage
+            .from(BUCKET_NAME)
+            .getPublicUrl(file.name);
+
+
+        const img =
+          document.createElement("img");
+
+        img.src =
+          publicData.publicUrl;
+
+        img.alt =
+          "Photo from Logan's 30th";
+
+        img.loading =
+          "lazy";
+
+
+        gallery.appendChild(img);
+
+      });
+
     }
 
-    uploaded++;
-  }
 
-  status.textContent =
-    `🎉 ${uploaded} photo${uploaded === 1 ? "" : "s"} uploaded!`;
+    /* =====================================================
+       LOAD GALLERY WHEN PAGE OPENS
+       ===================================================== */
 
-  photoInput.value = "";
-  uploadButton.disabled = false;
+    loadPhotos();
 
-  loadPhotos();
-
-});
-
-async function loadPhotos() {
-
-  const { data, error } = await supabaseClient
-    .storage
-    .from("event-photos")
-    .list();
-
-  if (error) {
-    console.error(error);
-    return;
-  }
-
-  gallery.innerHTML = "";
-
-  data.forEach(file => {
-
-    const { data: publicUrl } =
-      supabaseClient
-        .storage
-        .from("event-photos")
-        .getPublicUrl(file.name);
-
-    const img = document.createElement("img");
-
-    img.src = publicUrl.publicUrl;
-
-    gallery.appendChild(img);
-
-  });
-
-}
-
-loadPhotos();
-
-</script>
+  </script>
 
 </body>
 </html>
