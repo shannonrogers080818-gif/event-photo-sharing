@@ -9,41 +9,45 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
+      font-family: Arial, sans-serif;
       background: #fff7fb;
       color: #222;
       text-align: center;
     }
 
     h1 {
-      font-size: 52px;
-      margin: 50px 20px 10px;
+      font-size: 48px;
+      margin: 45px 20px 10px;
     }
 
     h2 {
-      font-size: 32px;
-      margin-top: 50px;
+      font-size: 30px;
+      margin-top: 45px;
     }
 
     p {
-      font-size: 25px;
+      font-size: 24px;
     }
 
     .card {
       background: white;
-      max-width: 700px;
+      max-width: 750px;
       margin: 40px auto;
       padding: 40px 25px;
       border-radius: 30px;
-      box-shadow: 0 5px 25px rgba(0,0,0,0.08);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08);
     }
 
     input[type="file"] {
       font-size: 18px;
-      margin: 20px;
-      max-width: 90%;
+      max-width: 100%;
+      margin: 20px 0;
     }
 
     button {
@@ -52,7 +56,7 @@
       border: none;
       padding: 16px 28px;
       border-radius: 12px;
-      font-size: 20px;
+      font-size: 18px;
       cursor: pointer;
     }
 
@@ -70,17 +74,17 @@
     .gallery {
       max-width: 1000px;
       margin: 20px auto 60px;
-      padding: 20px;
+      padding: 0 15px;
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 18px;
+      gap: 15px;
     }
 
     .gallery img {
       width: 100%;
-      height: 240px;
+      height: 250px;
       object-fit: cover;
-      border-radius: 18px;
+      border-radius: 15px;
       background: #eee;
     }
   </style>
@@ -127,22 +131,39 @@
     const SUPABASE_URL =
       "https://gtruvxetsdvcsibknrk.supabase.co";
 
-    const SUPABASE_KEY =
+    /*
+      IMPORTANT:
+      Put your EXISTING Supabase anon/public key between
+      the quotation marks below.
+
+      It is the long key already in your old index.html.
+    */
+
+    const SUPABASE_ANON_KEY =
       "sb_publishable_8rDiAAZSF8go9F6f7NtRXA_NHbqiF3W";
 
 
     /* =====================================================
-       DO NOT CHANGE ANYTHING BELOW THIS LINE
+       YOUR BUCKET
        ===================================================== */
 
     const BUCKET_NAME = "Events-photos";
 
+
+    /* =====================================================
+       CONNECT TO SUPABASE
+       ===================================================== */
+
     const supabaseClient =
-      window.supabase.createClient(
+      supabase.createClient(
         SUPABASE_URL,
-        SUPABASE_KEY
+        SUPABASE_ANON_KEY
       );
 
+
+    /* =====================================================
+       PAGE ELEMENTS
+       ===================================================== */
 
     const photoInput =
       document.getElementById("photoInput");
@@ -163,9 +184,9 @@
 
     uploadButton.addEventListener("click", async () => {
 
-      const files = Array.from(photoInput.files);
+      const files = photoInput.files;
 
-      if (files.length === 0) {
+      if (!files || files.length === 0) {
         status.textContent = "Please choose a photo first.";
         return;
       }
@@ -174,73 +195,63 @@
 
       let uploaded = 0;
 
-      status.textContent =
-        `Uploading ${files.length} photo${files.length === 1 ? "" : "s"}...`;
+      status.textContent = "Uploading photos...";
 
       for (const file of files) {
 
         try {
 
-          const extension =
-            file.name.split(".").pop();
-
-          const safeName =
-            file.name
-              .replace(/[^a-zA-Z0-9.-]/g, "-");
+          /*
+            Give every photo a unique filename.
+          */
 
           const fileName =
-            `${Date.now()}-${Math.random()
-              .toString(36)
-              .substring(2, 8)}-${safeName}`;
+            `${Date.now()}-${crypto.randomUUID()}-${file.name}`;
 
 
           const { error } =
             await supabaseClient
               .storage
               .from(BUCKET_NAME)
-              .upload(fileName, file, {
-                cacheControl: "3600",
-                upsert: false
-              });
+              .upload(
+                fileName,
+                file,
+                {
+                  cacheControl: "3600",
+                  upsert: false,
+                  contentType: file.type
+                }
+              );
 
 
           if (error) {
-            console.error("UPLOAD ERROR:", error);
-
+            console.error("Upload error:", error);
             status.textContent =
-              `Upload failed: ${error.message}`;
-
+              "Upload failed: " + error.message;
             uploadButton.disabled = false;
-
             return;
           }
 
-
           uploaded++;
 
-          status.textContent =
-            `🎉 ${uploaded} of ${files.length} uploaded!`;
+        } catch (error) {
 
-        }
-
-        catch (error) {
-
-          console.error(error);
+          console.error("Upload error:", error);
 
           status.textContent =
-            `Upload failed: ${error.message}`;
+            "Upload failed: " + error.message;
 
           uploadButton.disabled = false;
-
           return;
         }
       }
 
 
-      photoInput.value = "";
-
       status.textContent =
-        `🎉 ${uploaded} photo${uploaded === 1 ? "" : "s"} uploaded successfully!`;
+        `🎉 ${uploaded} photo${uploaded === 1 ? "" : "s"} uploaded!`;
+
+
+      photoInput.value = "";
 
       uploadButton.disabled = false;
 
@@ -255,15 +266,14 @@
 
     async function loadPhotos() {
 
-      gallery.innerHTML = "Loading photos...";
-
+      gallery.innerHTML = "";
 
       const { data, error } =
         await supabaseClient
           .storage
           .from(BUCKET_NAME)
           .list("", {
-            limit: 200,
+            limit: 100,
             sortBy: {
               column: "created_at",
               order: "desc"
@@ -273,22 +283,19 @@
 
       if (error) {
 
-        console.error("GALLERY ERROR:", error);
+        console.error("Gallery error:", error);
 
         gallery.innerHTML =
-          `<p>Couldn't load the photos.</p>`;
+          "<p>Unable to load photos.</p>";
 
         return;
       }
 
 
-      gallery.innerHTML = "";
-
-
       if (!data || data.length === 0) {
 
         gallery.innerHTML =
-          "<p>No photos uploaded yet 📸</p>";
+          "<p>No photos yet — be the first! 📸</p>";
 
         return;
       }
@@ -296,9 +303,14 @@
 
       data.forEach(file => {
 
-        const {
-          data: publicData
-        } =
+        /*
+          Ignore folders.
+        */
+
+        if (!file.name) return;
+
+
+        const { data: publicData } =
           supabaseClient
             .storage
             .from(BUCKET_NAME)
@@ -308,14 +320,12 @@
         const img =
           document.createElement("img");
 
-        img.src =
-          publicData.publicUrl;
 
-        img.alt =
-          "Photo from Logan's 30th";
+        img.src = publicData.publicUrl;
 
-        img.loading =
-          "lazy";
+        img.alt = "Party photo";
+
+        img.loading = "lazy";
 
 
         gallery.appendChild(img);
@@ -326,7 +336,7 @@
 
 
     /* =====================================================
-       LOAD GALLERY WHEN PAGE OPENS
+       LOAD EXISTING PHOTOS WHEN PAGE OPENS
        ===================================================== */
 
     loadPhotos();
