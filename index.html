@@ -1,50 +1,220 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Event Photo Sharing</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logan's 30th 🎉</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
+      margin: 0;
+      background: #fff7fb;
+      color: #222;
       text-align: center;
-      padding: 40px 20px;
-      background: #f7f4ff;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: auto;
+      padding: 35px 20px;
     }
 
     h1 {
-      font-size: 36px;
+      font-size: 42px;
+      margin-bottom: 10px;
     }
 
-    p {
-      font-size: 18px;
+    .subtitle {
+      font-size: 20px;
+      margin-bottom: 30px;
     }
 
-    .upload {
-      margin: 30px auto;
-      padding: 25px;
+    .card {
       background: white;
-      border-radius: 20px;
-      max-width: 500px;
+      padding: 30px;
+      border-radius: 25px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.08);
     }
 
-    input {
-      margin: 20px;
+    input[type="file"] {
+      margin: 20px 0;
+      width: 100%;
+    }
+
+    button {
+      background: #222;
+      color: white;
+      border: none;
+      padding: 14px 25px;
+      border-radius: 12px;
+      font-size: 17px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+    }
+
+    #status {
+      margin: 20px 0;
+      font-weight: bold;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 30px;
+    }
+
+    .gallery img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      border-radius: 15px;
     }
   </style>
 </head>
 
 <body>
 
-  <h1>📸 Event Photos</h1>
+  <div class="container">
 
-  <p>Share your photos from the event!</p>
+    <h1>🎉 Logan's 30th 🎉</h1>
 
-  <div class="upload">
-    <h2>Upload your photos</h2>
+    <div class="subtitle">
+      Share your photos from the night! 📸
+    </div>
 
-    <input type="file" accept="image/*" multiple>
+    <div class="card">
 
-    <p>Choose photos from your phone or computer.</p>
+      <h2>📷 Add your photos</h2>
+
+      <input
+        type="file"
+        id="photos"
+        accept="image/*"
+        multiple
+      >
+
+      <br>
+
+      <button id="uploadButton">
+        Upload Photos
+      </button>
+
+      <div id="status"></div>
+
+    </div>
+
+    <h2>📸 Photos from the night</h2>
+
+    <div id="gallery" class="gallery"></div>
+
   </div>
+
+<script>
+
+const SUPABASE_URL = "https://gtrruvxetsdvcsibknrk.supabase.co";
+
+const SUPABASE_KEY = "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
+
+const supabaseClient = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+const uploadButton = document.getElementById("uploadButton");
+const photoInput = document.getElementById("photos");
+const status = document.getElementById("status");
+const gallery = document.getElementById("gallery");
+
+uploadButton.addEventListener("click", async () => {
+
+  const files = photoInput.files;
+
+  if (!files.length) {
+    status.textContent = "Please choose some photos first.";
+    return;
+  }
+
+  uploadButton.disabled = true;
+  status.textContent = "Uploading photos... 📸";
+
+  let uploaded = 0;
+
+  for (const file of files) {
+
+    const fileName =
+      Date.now() + "-" +
+      Math.random().toString(36).substring(2) +
+      "-" +
+      file.name;
+
+    const { error } = await supabaseClient
+      .storage
+      .from("event-photos")
+      .upload(fileName, file);
+
+    if (error) {
+      console.error(error);
+      status.textContent =
+        "Something went wrong uploading a photo.";
+      uploadButton.disabled = false;
+      return;
+    }
+
+    uploaded++;
+  }
+
+  status.textContent =
+    `🎉 ${uploaded} photo${uploaded === 1 ? "" : "s"} uploaded!`;
+
+  photoInput.value = "";
+  uploadButton.disabled = false;
+
+  loadPhotos();
+
+});
+
+async function loadPhotos() {
+
+  const { data, error } = await supabaseClient
+    .storage
+    .from("event-photos")
+    .list();
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  gallery.innerHTML = "";
+
+  data.forEach(file => {
+
+    const { data: publicUrl } =
+      supabaseClient
+        .storage
+        .from("event-photos")
+        .getPublicUrl(file.name);
+
+    const img = document.createElement("img");
+
+    img.src = publicUrl.publicUrl;
+
+    gallery.appendChild(img);
+
+  });
+
+}
+
+loadPhotos();
+
+</script>
 
 </body>
 </html>
