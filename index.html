@@ -156,7 +156,7 @@ uploadButton.addEventListener("click", async () => {
 
     const { error } = await supabaseClient
       .storage
-      .from("Event-photos")
+      .from("event-photos")
       .upload(fileName, file);
 
     if (error) {
@@ -184,7 +184,7 @@ async function loadPhotos() {
 
   const { data, error } = await supabaseClient
     .storage
-    .from("Event-photos")
+    .from("event-photos")
     .list();
 
   if (error) {
@@ -199,7 +199,7 @@ async function loadPhotos() {
     const { data: publicUrl } =
       supabaseClient
         .storage
-        .from("Event-photos")
+        .from("event-photos")
         .getPublicUrl(file.name);
 
     const img = document.createElement("img");
