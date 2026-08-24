@@ -212,7 +212,7 @@
           const { error } =
             await supabaseClient
               .storage
-              .from(BUCKET_NAME)
+              .from(event-photos)
               .upload(
                 fileName,
                 file,
@@ -271,7 +271,7 @@
       const { data, error } =
         await supabaseClient
           .storage
-          .from(BUCKET_NAME)
+          .from(event-photos)
           .list("", {
             limit: 100,
             sortBy: {
